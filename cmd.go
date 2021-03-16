@@ -19,7 +19,7 @@ const (
 func init() {
 	x := cmdtab.New("joke")
 	x.Summary = "Fetches you a joke"
-	x.Usage = "[]"
+	x.Usage = "[save|list]"
 
 	x.Method = func(args []string) error {
 		config, err := conf.New()
@@ -32,10 +32,15 @@ func init() {
 		}
 
 		if len(args) > 0 {
-      switch args[0] {
-      case "save":
-        saveJoke(config.Get("joke.last"), config)
-      }
+			switch args[0] {
+			case "save":
+				saveJoke(config.Get("joke.last"), config)
+			case "list":
+				jokes := getJokes(config)
+				for k, v := range jokes {
+          fmt.Printf("%v) %v\n", k+1, v)
+				}
+			}
 		} else {
 			res, err := fetchJoke()
 			if err != nil {
@@ -48,9 +53,14 @@ func init() {
 	}
 }
 
-func saveJoke(joke string, config *conf.Config) {
+func getJokes(config *conf.Config) []string {
 	var jokes = []string{}
 	json.Unmarshal([]byte(config.Get("joke.saved")), &jokes)
+	return jokes
+}
+
+func saveJoke(joke string, config *conf.Config) {
+  jokes := getJokes(config)
 	jokes = append(jokes, joke)
 	encodedJokes, _ := json.Marshal(jokes)
 	config.SetSave("joke.saved", string(encodedJokes))
