@@ -32,20 +32,31 @@ func init() {
 		}
 
 		if len(args) > 0 {
-
+      switch args[0] {
+      case "save":
+        saveJoke(config.Get("joke.last"), config)
+      }
 		} else {
-			joke, err := fetchJoke()
+			res, err := fetchJoke()
 			if err != nil {
 				return err
 			}
-			fmt.Println(joke.Joke)
+			fmt.Println(res.Joke)
+			config.SetSave("joke.last", res.Joke)
 		}
 		return nil
 	}
 }
 
+func saveJoke(joke string, config *conf.Config) {
+	var jokes = []string{}
+	json.Unmarshal([]byte(config.Get("joke.saved")), &jokes)
+	jokes = append(jokes, joke)
+	encodedJokes, _ := json.Marshal(jokes)
+	config.SetSave("joke.saved", string(encodedJokes))
+}
+
 type Response struct {
-	ID   string `json:"id"`
 	Joke string `json:"joke"`
 }
 
