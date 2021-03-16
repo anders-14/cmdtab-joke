@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/rwxrob/cmdtab"
@@ -41,6 +42,12 @@ func init() {
 				for k, v := range jokes {
 					fmt.Printf("%v) %v\n", k+1, v)
 				}
+			case "delete":
+        i, err := strconv.ParseInt(args[1], 10, 0)
+        if err != nil {
+          return err
+        }
+				deleteJoke(i, config)
 			default:
 				return x.UsageError()
 			}
@@ -65,6 +72,19 @@ func getJokes(config *conf.Config) []string {
 func saveJoke(joke string, config *conf.Config) {
 	jokes := getJokes(config)
 	jokes = append(jokes, joke)
+	encodedJokes, _ := json.Marshal(jokes)
+	config.SetSave("joke.saved", string(encodedJokes))
+}
+
+func deleteJoke(i int64, config *conf.Config) {
+  i = i-1
+	jokes := getJokes(config)
+  if int(i) > len(jokes)-1 || i < 0 {
+    return
+  }
+	copy(jokes[i:], jokes[i+1:])
+	jokes[len(jokes)-1] = ""
+	jokes = jokes[:len(jokes)-1]
 	encodedJokes, _ := json.Marshal(jokes)
 	config.SetSave("joke.saved", string(encodedJokes))
 }
