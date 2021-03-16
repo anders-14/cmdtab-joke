@@ -17,9 +17,10 @@ const (
 )
 
 func init() {
-	x := cmdtab.New("joke")
-	x.Summary = "Fetches you a joke"
-	x.Usage = "[save|list]"
+	x := cmdtab.New("joke", "save", "list")
+	x.Summary = `Fetches you a joke`
+	x.Usage = `[save|list]`
+	x.Description = ``
 
 	x.Method = func(args []string) error {
 		config, err := conf.New()
@@ -38,17 +39,19 @@ func init() {
 			case "list":
 				jokes := getJokes(config)
 				for k, v := range jokes {
-          fmt.Printf("%v) %v\n", k+1, v)
+					fmt.Printf("%v) %v\n", k+1, v)
 				}
+			default:
+				return x.UsageError()
 			}
-		} else {
-			res, err := fetchJoke()
-			if err != nil {
-				return err
-			}
-			fmt.Println(res.Joke)
-			config.SetSave("joke.last", res.Joke)
+			return nil
 		}
+		res, err := fetchJoke()
+		if err != nil {
+			return err
+		}
+		fmt.Println(res.Joke)
+		config.SetSave("joke.last", res.Joke)
 		return nil
 	}
 }
@@ -60,22 +63,22 @@ func getJokes(config *conf.Config) []string {
 }
 
 func saveJoke(joke string, config *conf.Config) {
-  jokes := getJokes(config)
+	jokes := getJokes(config)
 	jokes = append(jokes, joke)
 	encodedJokes, _ := json.Marshal(jokes)
 	config.SetSave("joke.saved", string(encodedJokes))
 }
 
-type Response struct {
+type response struct {
 	Joke string `json:"joke"`
 }
 
-func fetchJoke() (Response, error) {
-	var joke Response
+func fetchJoke() (response, error) {
+	var joke response
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return Response{}, err
+		return response{}, err
 	}
 	req.Header.Set("Accept", "application/json")
 
