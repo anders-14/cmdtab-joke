@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/rwxrob/cmdtab"
 	_ "github.com/anders-14/cmdtab-joke"
+	"github.com/rwxrob/cmdtab"
 )
 
 func main() {

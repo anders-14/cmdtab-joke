@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,10 +17,22 @@ const (
 )
 
 func init() {
-	x := cmdtab.New("joke", "save", "list")
+	x := cmdtab.New("joke", "save", "list", "delete")
 	x.Summary = `Fetches you a joke`
-	x.Usage = `[save|list]`
-	x.Description = ``
+	x.Usage = `[save|list|delete]`
+	x.Description = `
+    Get a funny (or not) joke by calling the command *joke*.
+    The joke is stored in *joke.last*.
+
+    When *save* is passed the joke stored in *joke.last* is saved
+    to *joke.saved*.
+
+    When *list* is passed all the jokes stored in *jokes.saved* is
+    shown with a numbered index.
+
+    When *delete is passed and an argument corresponding to the
+    index of the joke you want to delete, shown using *list*, the
+    joke in question is removed from *joke.saved*.`
 
 	x.Method = func(args []string) error {
 		config, err := conf.New()
@@ -43,11 +54,14 @@ func init() {
 					fmt.Printf("%v) %v\n", k+1, v)
 				}
 			case "delete":
-        i, err := strconv.ParseInt(args[1], 10, 0)
-        if err != nil {
-          return err
-        }
-				deleteJoke(i, config)
+				i, err := strconv.ParseInt(args[1], 10, 0)
+				if err != nil {
+					return err
+				}
+				err = deleteJoke(i, config)
+				if err != nil {
+					return err
+				}
 			default:
 				return x.UsageError()
 			}
@@ -76,17 +90,18 @@ func saveJoke(joke string, config *conf.Config) {
 	config.SetSave("joke.saved", string(encodedJokes))
 }
 
-func deleteJoke(i int64, config *conf.Config) {
-  i = i-1
+func deleteJoke(i int64, config *conf.Config) error {
+	i = i - 1
 	jokes := getJokes(config)
-  if int(i) > len(jokes)-1 || i < 0 {
-    return
-  }
+	if int(i) > len(jokes)-1 || i < 0 {
+		return fmt.Errorf("Invalid argument")
+	}
 	copy(jokes[i:], jokes[i+1:])
 	jokes[len(jokes)-1] = ""
 	jokes = jokes[:len(jokes)-1]
 	encodedJokes, _ := json.Marshal(jokes)
 	config.SetSave("joke.saved", string(encodedJokes))
+	return nil
 }
 
 type response struct {
@@ -110,12 +125,7 @@ func fetchJoke() (response, error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = json.Unmarshal(body, &joke)
+	err = json.NewDecoder(res.Body).Decode(&joke)
 	if err != nil {
 		log.Fatal(err)
 	}
